@@ -5,13 +5,22 @@ const AppError = require('../../utils/AppError');
 const authRepository = require('./auth.repository');
 
 function publicUser(user) {
+  const name = [user.first_name || user.firstName, user.last_name || user.lastName].filter(Boolean).join(' ');
   return {
     id: user.id,
     email: user.email,
-    name: [user.first_name || user.firstName, user.last_name || user.lastName].filter(Boolean).join(' '),
+    name,
     firstName: user.first_name || user.firstName,
     lastName: user.last_name || user.lastName,
-    role: user.role
+    role: user.role,
+    phone: null,
+    profileImageUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(name || user.email)}&background=0f172a&color=ffffff&size=160`,
+    contactInformation: {
+      fullName: name,
+      email: user.email,
+      phone: null
+    },
+    addresses: []
   };
 }
 

@@ -9,6 +9,9 @@ router.post('/login', asyncHandler(auth.login));
 router.post('/logout', asyncHandler(auth.logout));
 router.get('/me', authenticate, asyncHandler(auth.me));
 router.patch('/me', authenticate, asyncHandler(auth.updateProfile));
+router.post('/me/addresses', authenticate, asyncHandler(auth.createAddress));
+router.put('/me/addresses/:addressId', authenticate, asyncHandler(auth.updateAddress));
+router.delete('/me/addresses/:addressId', authenticate, asyncHandler(auth.deleteAddress));
 
 module.exports = router;
 
