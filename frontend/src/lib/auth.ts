@@ -1,7 +1,15 @@
-import { User } from '@/types/user';
+import { User, UserAddress } from '@/types/user';
 import { api } from './api';
 
 export type AuthResponse = { user: User };
+export type ProfileInput = {
+  name: string;
+  email: string;
+  phone?: string;
+  profileImageUrl?: string;
+  panNumber?: string;
+};
+export type AddressInput = Omit<UserAddress, 'id'>;
 
 export const authKeys = {
   me: ['auth', 'me'] as const
@@ -27,4 +35,31 @@ export function register(input: { name: string; email: string; password: string 
 
 export function logout() {
   return api<void>('/auth/logout', { method: 'POST' });
+}
+
+export function updateProfile(input: ProfileInput) {
+  return api<AuthResponse>('/auth/me', {
+    method: 'PATCH',
+    body: JSON.stringify(input)
+  });
+}
+
+export function createAddress(input: AddressInput) {
+  return api<AuthResponse>('/auth/me/addresses', {
+    method: 'POST',
+    body: JSON.stringify(input)
+  });
+}
+
+export function updateAddress(addressId: string, input: AddressInput) {
+  return api<AuthResponse>(`/auth/me/addresses/${addressId}`, {
+    method: 'PUT',
+    body: JSON.stringify(input)
+  });
+}
+
+export function deleteAddress(addressId: string) {
+  return api<AuthResponse>(`/auth/me/addresses/${addressId}`, {
+    method: 'DELETE'
+  });
 }

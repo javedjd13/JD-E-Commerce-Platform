@@ -5,19 +5,89 @@ import prisma from '../../lib/prisma';
 
 import type { Request, Response } from 'express';
 
+function getProfileImageUrl(name: string, email: string) {
+  const label = encodeURIComponent(name || email.split('@')[0] || 'User');
+  return `https://ui-avatars.com/api/?name=${label}&background=0f172a&color=ffffff&size=160`;
+}
+
 function toPublicUser(user: any) {
   const nameParts = String(user.name || '').split(/\s+/).filter(Boolean);
   const firstName = user.first_name || user.firstName || nameParts[0] || '';
   const lastName = user.last_name || user.lastName || nameParts.slice(1).join(' ');
   const name = [firstName, lastName].filter(Boolean).join(' ') || user.name || '';
+  const addresses = (user.addresses || []).map((address: any) => ({
+    id: address.id,
+    label: address.label,
+    fullName: address.fullName,
+    phone: address.phone,
+    line1: address.line1,
+    line2: address.line2,
+    city: address.city,
+    state: address.state,
+    postalCode: address.postalCode,
+    country: address.country,
+    isDefault: address.isDefault
+  }));
+  const phone = user.phone || addresses.find((address: any) => address.isDefault)?.phone || addresses[0]?.phone || null;
+  const profileImageUrl = user.profileImageUrl || getProfileImageUrl(name, user.email);
+
   return {
     id: user.id,
     name,
     firstName: firstName || undefined,
     lastName: lastName || undefined,
     email: user.email,
-    role: (user.role || '').toLowerCase()
+    phone,
+    role: (user.role || '').toLowerCase(),
+    profileImageUrl,
+    panNumber: user.panNumber,
+    contactInformation: {
+      fullName: name,
+      email: user.email,
+      phone
+    },
+    addresses,
+    createdAt: user.createdAt || user.created_at,
+    updatedAt: user.updatedAt || user.updated_at
   };
+}
+
+function normalizeAddressInput(body: any) {
+  return {
+    label: body.label || 'Home',
+    fullName: body.fullName || body.name,
+    phone: body.phone,
+    line1: body.line1,
+    line2: body.line2 || null,
+    city: body.city,
+    state: body.state,
+    postalCode: body.postalCode,
+    country: body.country || 'India',
+    isDefault: Boolean(body.isDefault)
+  };
+}
+
+function validateAddressInput(input: ReturnType<typeof normalizeAddressInput>) {
+  const required = ['fullName', 'phone', 'line1', 'city', 'state', 'postalCode'] as const;
+  const missing = required.filter((key) => !String(input[key] || '').trim());
+  if (missing.length) {
+    throw new AppError(`Missing address fields: ${missing.join(', ')}`, 400, 'VALIDATION_ERROR');
+  }
+}
+
+async function getUserWithAddresses(userId: string) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    include: { addresses: { orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }] } }
+  });
+}
+
+async function unsetDefaultAddressIfNeeded(userId: string, isDefault: boolean) {
+  if (!isDefault) return;
+  await prisma.address.updateMany({
+    where: { userId },
+    data: { isDefault: false }
+  });
 }
 
 function setAuthCookie(res: Response, token: string) {
@@ -53,7 +123,7 @@ export async function logout(_req: Request, res: Response) {
 }
 
 export async function me(req: Request, res: Response) {
-  const user = await prisma.user.findUnique({ where: { id: req.user!.sub } });
+  const user = await getUserWithAddresses(req.user!.sub);
   if (!user) {
     throw new AppError('User not found', 404, 'USER_NOT_FOUND');
   }
@@ -70,9 +140,74 @@ export async function updateProfile(req: Request, res: Response) {
     where: { id: req.user!.sub },
     data: {
       ...(req.body.email ? { email: req.body.email } : {}),
-      ...(name ? { name } : {})
+      ...(name ? { name } : {}),
+      ...(req.body.phone !== undefined ? { phone: req.body.phone || null } : {}),
+      ...(req.body.profileImageUrl !== undefined ? { profileImageUrl: req.body.profileImageUrl || null } : {}),
+      ...(req.body.panNumber !== undefined ? { panNumber: req.body.panNumber || null } : {})
+    },
+    include: { addresses: { orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }] } }
+  });
+
+  res.json({ user: toPublicUser(user) });
+}
+
+export async function createAddress(req: Request, res: Response) {
+  const input = normalizeAddressInput(req.body);
+  validateAddressInput(input);
+
+  const addressCount = await prisma.address.count({ where: { userId: req.user!.sub } });
+  const shouldBeDefault = input.isDefault || addressCount === 0;
+  await unsetDefaultAddressIfNeeded(req.user!.sub, shouldBeDefault);
+
+  await prisma.address.create({
+    data: {
+      ...input,
+      isDefault: shouldBeDefault,
+      userId: req.user!.sub
     }
   });
 
+  const user = await getUserWithAddresses(req.user!.sub);
+  res.status(201).json({ user: toPublicUser(user) });
+}
+
+export async function updateAddress(req: Request, res: Response) {
+  const input = normalizeAddressInput(req.body);
+  validateAddressInput(input);
+
+  const existing = await prisma.address.findFirst({
+    where: { id: req.params.addressId, userId: req.user!.sub }
+  });
+  if (!existing) throw new AppError('Address not found', 404, 'ADDRESS_NOT_FOUND');
+
+  await unsetDefaultAddressIfNeeded(req.user!.sub, input.isDefault);
+  await prisma.address.update({
+    where: { id: req.params.addressId },
+    data: input
+  });
+
+  const user = await getUserWithAddresses(req.user!.sub);
+  res.json({ user: toPublicUser(user) });
+}
+
+export async function deleteAddress(req: Request, res: Response) {
+  const existing = await prisma.address.findFirst({
+    where: { id: req.params.addressId, userId: req.user!.sub }
+  });
+  if (!existing) throw new AppError('Address not found', 404, 'ADDRESS_NOT_FOUND');
+
+  await prisma.address.delete({ where: { id: req.params.addressId } });
+
+  if (existing.isDefault) {
+    const nextAddress = await prisma.address.findFirst({
+      where: { userId: req.user!.sub },
+      orderBy: { createdAt: 'desc' }
+    });
+    if (nextAddress) {
+      await prisma.address.update({ where: { id: nextAddress.id }, data: { isDefault: true } });
+    }
+  }
+
+  const user = await getUserWithAddresses(req.user!.sub);
   res.json({ user: toPublicUser(user) });
 }

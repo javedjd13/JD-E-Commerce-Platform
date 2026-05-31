@@ -40,3 +40,7 @@ export function createOrder() {
 export function getOrders() {
   return api<{ orders: Order[] }>('/orders');
 }
+
+export function getOrder(orderId: string) {
+  return api<{ order: Order }>(`/orders/${encodeURIComponent(orderId)}`);
+}
