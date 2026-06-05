@@ -7,7 +7,7 @@ const authRepository = require('./auth.repository');
 function publicUser(user) {
   const name = [user.first_name || user.firstName, user.last_name || user.lastName].filter(Boolean).join(' ');
   return {
-    id: user.id,
+    id: user.publicId,
     email: user.email,
     name,
     firstName: user.first_name || user.firstName,

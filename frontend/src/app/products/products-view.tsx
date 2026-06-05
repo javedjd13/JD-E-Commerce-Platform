@@ -5,18 +5,22 @@ import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { ProductCard } from '@/components/common/ProductCard';
 import { ProductsPageSkeleton } from '@/components/common/loading-skeletons';
-import { getProductsClient, productKeys } from '@/features/product/product.api';
+import { ProductsResponse, getProductsClient, productKeys } from '@/features/product/product.api';
 import { ProductFilters } from '@/types/product';
 
 type ProductsViewProps = {
   filters: ProductFilters;
+  initialProducts: ProductsResponse;
 };
 
-export function ProductsView({ filters }: ProductsViewProps) {
+export function ProductsView({ filters, initialProducts }: ProductsViewProps) {
   const router = useRouter();
   const productsQuery = useQuery({
     queryKey: productKeys.list(filters),
     queryFn: () => getProductsClient(filters),
+    initialData: initialProducts,
+    placeholderData: (previous) => previous,
+    refetchOnMount: 'always',
     staleTime: 60_000
   });
 

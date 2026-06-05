@@ -1,6 +1,7 @@
 'use client';
 
 import { CheckCircle2 } from 'lucide-react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -76,7 +77,9 @@ export function CheckoutForm({ event, tier, quantity }: { event: Event; tier: Ti
           <CardTitle>Order summary</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <img src={event.imageUrl} alt={event.title} className="aspect-[16/10] rounded-xl object-cover" />
+          <div className="relative aspect-[16/10] overflow-hidden rounded-xl">
+            <Image src={event.imageUrl} alt={event.title} fill sizes="360px" className="object-cover" />
+          </div>
           <div>
             <h2 className="font-semibold">{event.title}</h2>
             <p className="mt-1 text-sm text-muted-foreground">{tier.name} · {quantity} ticket{quantity > 1 ? 's' : ''}</p>

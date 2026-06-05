@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronDown, ChevronRight, Copy, Download, Headphones, Home, MapPin, MessageCircle, Star, Trophy, UserRound } from 'lucide-react';
+import { ChevronDown, ChevronRight, Copy, Download, Home, MessageCircle, Star, Trophy, UserRound } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -43,7 +43,7 @@ function OrderDetail({ order }: { order: Order }) {
   const fee = 16;
   const otherDiscount = Math.max(0, (order.discountAmount || listingAmount - sellingPrice) + fee);
   const deliveredAt = order.deliveredAt || order.createdAt;
-  const orderNumber = `OD${order.id.replace(/\D/g, '').slice(-18).padStart(18, '0')}`;
+  const orderNumber = `OD${String(order.id).padStart(18, '0')}`;
 
   return (
     <div className="bg-slate-100 px-4 py-4">
@@ -54,7 +54,7 @@ function OrderDetail({ order }: { order: Order }) {
             <section className="bg-white">
               <div className="grid gap-5 p-5 sm:grid-cols-[1fr_90px]">
                 <div>
-                  <h1 className="max-w-2xl text-lg font-medium text-slate-950">{firstItem?.product.title || `Order #${order.id.slice(-8)}`}</h1>
+                  <h1 className="max-w-2xl text-lg font-medium text-slate-950">{firstItem?.product.title || `Order #${order.id}`}</h1>
                   <p className="mt-2 text-xs text-slate-500">{firstItem?.product.category || 'Product'}</p>
                   <p className="mt-2 text-xs text-slate-500">Seller: ViraEjnt</p>
                   <p className="mt-1 text-lg font-bold text-slate-950">

@@ -4,7 +4,7 @@ import { ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from './use-cart';
 
-export function AddToCartButton({ productId }: { productId: string }) {
+export function AddToCartButton({ productId }: { productId: number }) {
   const { addItem } = useCart();
 
   return (

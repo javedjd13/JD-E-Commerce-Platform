@@ -1,6 +1,7 @@
 'use client';
 
 import { CalendarDays, MapPin } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { DashboardPageSkeleton } from '@/components/common/loading-skeletons';
@@ -29,7 +30,9 @@ export function DashboardView() {
         <div className="space-y-4">
           {data.map((booking) => (
             <article key={booking.id} className="grid gap-4 rounded-2xl border bg-white p-4 shadow-sm sm:grid-cols-[180px_1fr_auto]">
-              <img src={booking.event.imageUrl} alt={booking.event.title} className="aspect-[16/10] rounded-xl object-cover" />
+              <div className="relative aspect-[16/10] overflow-hidden rounded-xl">
+                <Image src={booking.event.imageUrl} alt={booking.event.title} fill sizes="180px" className="object-cover" />
+              </div>
               <div>
                 <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold uppercase text-emerald-800">{booking.status}</span>
                 <h2 className="mt-3 text-xl font-semibold">{booking.event.title}</h2>

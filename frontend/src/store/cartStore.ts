@@ -1,17 +1,17 @@
-'use client';
+"use client";
 
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 type CartState = {
   count: number;
 };
 
 const initialState: CartState = {
-  count: 0
+  count: 0,
 };
 
 const cartSlice = createSlice({
-  name: 'cart',
+  name: "cart",
   initialState,
   reducers: {
     setCount: (state, action: PayloadAction<number>) => {
@@ -22,8 +22,8 @@ const cartSlice = createSlice({
     },
     resetCart: (state) => {
       state.count = 0;
-    }
-  }
+    },
+  },
 });
 
 export const { increment, resetCart, setCount } = cartSlice.actions;

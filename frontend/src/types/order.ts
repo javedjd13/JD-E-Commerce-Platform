@@ -2,23 +2,26 @@ import { Product } from './product';
 import { UserAddress } from './user';
 
 export type Order = {
-  id: string;
+  id: number;
   status: string;
   totalAmount: number;
   listingAmount?: number;
   discountAmount?: number;
   paymentMethod?: string;
+  paymentStatus?: string;
+  razorpayOrderId?: string | null;
+  razorpayPaymentId?: string | null;
   createdAt: string;
   deliveredAt?: string;
   shippingAddress?: UserAddress | null;
   customer?: {
-    id: string;
+    id: number;
     name: string;
     email: string;
     phone?: string | null;
   } | null;
   items: {
-    id: string;
+    id: number;
     quantity: number;
     price: number;
     listingPrice?: number;

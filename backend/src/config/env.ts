@@ -20,6 +20,10 @@ module.exports = {
     accessSecret: process.env.JWT_ACCESS_SECRET || 'change-this-secret-in-production',
     accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '7d'
   },
+  razorpay: {
+    keyId: process.env.RAZORPAY_KEY_ID || '',
+    keySecret: process.env.RAZORPAY_KEY_SECRET || ''
+  },
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'

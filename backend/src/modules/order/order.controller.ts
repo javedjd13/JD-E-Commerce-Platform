@@ -1,8 +1,19 @@
 import type { Request, Response } from 'express';
+import crypto from 'crypto';
 import prisma from '../../lib/prisma';
 import { productPrice } from '../../utils/money';
 
 const AppError = require('../../utils/AppError');
+const Razorpay = require('razorpay');
+const env = require('../../config/env');
+
+function readPublicId(value: unknown, label: string) {
+  const id = Number(value);
+  if (!Number.isInteger(id) || id < 1) {
+    throw new AppError(`${label} id must be a positive integer`, 400, 'INVALID_ID');
+  }
+  return id;
+}
 
 function serializeOrder(order: any) {
   const primaryAddress = order.user?.addresses?.find((address: any) => address.isDefault) || order.user?.addresses?.[0] || null;
@@ -11,16 +22,19 @@ function serializeOrder(order: any) {
   const discount = Math.max(0, listingTotal - itemTotal);
 
   return {
-    id: order.id,
+    id: order.publicId,
     status: order.status.toLowerCase(),
     totalAmount: Number(order.totalAmount),
     listingAmount: listingTotal,
     discountAmount: discount,
-    paymentMethod: 'Cash On Delivery',
+    paymentMethod: formatPaymentMethod(order.paymentMethod),
+    paymentStatus: order.paymentStatus,
+    razorpayOrderId: order.razorpayOrderId,
+    razorpayPaymentId: order.razorpayPaymentId,
     createdAt: order.createdAt,
     deliveredAt: new Date(new Date(order.createdAt).getTime() + 8 * 24 * 60 * 60 * 1000),
     shippingAddress: primaryAddress ? {
-      id: primaryAddress.id,
+      id: primaryAddress.publicId,
       label: primaryAddress.label,
       fullName: primaryAddress.fullName,
       phone: primaryAddress.phone,
@@ -33,19 +47,19 @@ function serializeOrder(order: any) {
       isDefault: primaryAddress.isDefault
     } : null,
     customer: order.user ? {
-      id: order.user.id,
+      id: order.user.publicId,
       name: order.user.name,
       email: order.user.email,
       phone: order.user.phone
     } : null,
     items: order.items.map((item: any) => ({
-      id: item.id,
+      id: item.publicId,
       quantity: item.quantity,
       price: Number(item.price),
       listingPrice: Number(item.product.price),
       discount: item.product.discount,
       product: {
-        id: item.product.id,
+        id: item.product.publicId,
         title: item.product.title,
         images: item.product.images,
         category: item.product.category
@@ -54,11 +68,32 @@ function serializeOrder(order: any) {
   };
 }
 
-export async function createOrder(req: Request, res: Response) {
+function formatPaymentMethod(method?: string | null) {
+  if (method === 'RAZORPAY') return 'Razorpay';
+  return 'Cash On Delivery';
+}
+
+function getRazorpayClient() {
+  if (!env.razorpay.keyId || !env.razorpay.keySecret) {
+    throw new AppError('Razorpay credentials are not configured', 500, 'RAZORPAY_NOT_CONFIGURED');
+  }
+
+  return new Razorpay({
+    key_id: env.razorpay.keyId,
+    key_secret: env.razorpay.keySecret
+  });
+}
+
+function amountToPaise(amount: number) {
+  return Math.round(amount * 100);
+}
+
+async function getUserCart(userId: string) {
   const cart = await prisma.cart.findUnique({
-    where: { userId: req.user!.sub },
+    where: { userId },
     include: { items: { include: { product: true } } }
   });
+
   if (!cart || cart.items.length === 0) {
     throw new AppError('Cart is empty', 400, 'EMPTY_CART');
   }
@@ -67,11 +102,24 @@ export async function createOrder(req: Request, res: Response) {
     return sum + productPrice(item.product.price, item.product.discount) * item.quantity;
   }, 0);
 
+  return { cart, totalAmount };
+}
+
+async function createOrderFromCart(userId: string, payment: {
+  paymentMethod?: string;
+  paymentStatus?: string;
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
+  razorpaySignature?: string;
+} = {}) {
+  const { cart, totalAmount } = await getUserCart(userId);
+
   const order = await prisma.$transaction(async (tx) => {
     const created = await tx.order.create({
       data: {
-        userId: req.user!.sub,
+        userId,
         totalAmount,
+        ...payment,
         items: {
           create: cart.items.map((item) => ({
             productId: item.productId,
@@ -87,7 +135,84 @@ export async function createOrder(req: Request, res: Response) {
     return created;
   });
 
-  res.status(201).json({ order: serializeOrder(order) });
+  return order;
+}
+
+export async function createOrder(req: Request, res: Response) {
+  const order = await createOrderFromCart(req.user!.sub);
+  return res.status(201).json({ order: serializeOrder(order) });
+}
+
+export async function createRazorpayOrder(req: Request, res: Response) {
+  const { cart, totalAmount } = await getUserCart(req.user!.sub);
+  const user = await prisma.user.findUnique({ where: { id: req.user!.sub } });
+  const razorpay = getRazorpayClient();
+  const amount = amountToPaise(totalAmount);
+
+  const razorpayOrder = await razorpay.orders.create({
+    amount,
+    currency: 'INR',
+    receipt: `cart_${cart.publicId}_${Date.now()}`
+  });
+
+  res.status(201).json({
+    razorpayOrderId: razorpayOrder.id,
+    amount: razorpayOrder.amount,
+    currency: razorpayOrder.currency,
+    keyId: env.razorpay.keyId,
+    customer: {
+      name: user?.name || '',
+      email: user?.email || '',
+      contact: user?.phone || ''
+    }
+  });
+}
+
+export async function verifyRazorpayPayment(req: Request, res: Response) {
+  const razorpayOrderId = String(req.body?.razorpay_order_id || '');
+  const razorpayPaymentId = String(req.body?.razorpay_payment_id || '');
+  const razorpaySignature = String(req.body?.razorpay_signature || '');
+
+  if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+    throw new AppError('Razorpay payment details are required', 400, 'RAZORPAY_DETAILS_REQUIRED');
+  }
+
+  const razorpay = getRazorpayClient();
+  const existing = await prisma.order.findUnique({
+    where: { razorpayPaymentId },
+    include: { user: { include: { addresses: true } }, items: { include: { product: true } } }
+  });
+
+  if (existing) {
+    return res.json({ order: serializeOrder(existing) });
+  }
+
+  const expectedSignature = crypto
+    .createHmac('sha256', env.razorpay.keySecret)
+    .update(`${razorpayOrderId}|${razorpayPaymentId}`)
+    .digest('hex');
+
+  if (expectedSignature !== razorpaySignature) {
+    throw new AppError('Payment verification failed', 400, 'RAZORPAY_SIGNATURE_INVALID');
+  }
+
+  const { totalAmount } = await getUserCart(req.user!.sub);
+  const razorpayOrder = await razorpay.orders.fetch(razorpayOrderId);
+  const expectedAmount = amountToPaise(totalAmount);
+
+  if (Number(razorpayOrder.amount) !== expectedAmount || razorpayOrder.currency !== 'INR') {
+    throw new AppError('Payment amount does not match cart total', 400, 'RAZORPAY_AMOUNT_MISMATCH');
+  }
+
+  const order = await createOrderFromCart(req.user!.sub, {
+    paymentMethod: 'RAZORPAY',
+    paymentStatus: 'PAID',
+    razorpayOrderId,
+    razorpayPaymentId,
+    razorpaySignature
+  });
+
+  return res.status(201).json({ order: serializeOrder(order) });
 }
 
 export async function listOrders(req: Request, res: Response) {
@@ -103,7 +228,7 @@ export async function listOrders(req: Request, res: Response) {
 export async function getOrder(req: Request, res: Response) {
   const order = await prisma.order.findFirst({
     where: {
-      id: req.params.orderId,
+      publicId: readPublicId(req.params.orderId, 'Order'),
       userId: req.user!.sub
     },
     include: { user: { include: { addresses: { orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }] } } }, items: { include: { product: true } } }

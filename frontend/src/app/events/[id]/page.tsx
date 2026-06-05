@@ -1,4 +1,5 @@
 import { CalendarDays, MapPin, Tag } from 'lucide-react';
+import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { BookingPanel } from '@/features/events/booking-panel';
 import { getEvent } from '@/features/events/event.api';
@@ -25,7 +26,9 @@ export default async function EventDetailsPage({ params }: EventPageProps) {
             </div>
           </div>
           <div className="aspect-[16/11] overflow-hidden rounded-2xl">
-            <img src={event.imageUrl} alt={event.title} className="h-full w-full object-cover" />
+            <div className="relative h-full w-full">
+              <Image src={event.imageUrl} alt={event.title} fill sizes="(max-width: 1024px) 100vw, 520px" className="object-cover" priority />
+            </div>
           </div>
         </div>
       </section>

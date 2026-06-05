@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss';
+import { radiusTokens, shadowTokens, spacingTokens, typographyTokens } from './src/theme/tokens';
 
 const config: Config = {
   darkMode: ['class'],
@@ -33,10 +34,14 @@ const config: Config = {
         }
       },
       borderRadius: {
+        ...radiusTokens,
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)'
-      }
+      },
+      boxShadow: shadowTokens,
+      fontSize: typographyTokens.sizes,
+      spacing: spacingTokens
     }
   },
   plugins: []

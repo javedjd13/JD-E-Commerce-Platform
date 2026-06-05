@@ -1,5 +1,5 @@
 export type UserAddress = {
-  id: string;
+  id: number;
   label?: string | null;
   fullName: string;
   phone: string;
@@ -19,7 +19,7 @@ export type ContactInformation = {
 };
 
 export type User = {
-  id: string;
+  id: number;
   name: string;
   firstName?: string;
   lastName?: string;

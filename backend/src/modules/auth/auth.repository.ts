@@ -7,6 +7,7 @@ function normalizePrismaUser(user) {
 
   return {
     id: user.id,
+    publicId: user.publicId,
     email: user.email,
     password_hash: user.password,
     first_name: firstName || user.name || 'User',

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Star } from 'lucide-react';
 import { Product } from '@/types/product';
 import { currency, dealPrice } from '@/lib/api';
+import { ProductImagePlaceholder } from './ProductImagePlaceholder';
 
 export function ProductCard({ product }: { product: Product }) {
   const salePrice = dealPrice(product.price, product.discount);
@@ -12,13 +13,17 @@ export function ProductCard({ product }: { product: Product }) {
     <Link href={`/products/${product.id}`} className="group block h-full">
       <article className="h-full overflow-hidden bg-white p-4 transition hover:shadow-md">
         <div className="relative aspect-[0.88] overflow-hidden rounded-xl bg-slate-50">
-          <Image
-            src={product.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=900&q=80'}
-            alt={product.title}
-            fill
-            sizes="(max-width: 640px) 90vw, (max-width: 1280px) 33vw, 260px"
-            className="object-contain p-3 transition duration-300 group-hover:scale-105"
-          />
+          {product.images?.[0] ? (
+            <Image
+              src={product.images[0]}
+              alt={product.title}
+              fill
+              sizes="(max-width: 640px) 90vw, (max-width: 1280px) 33vw, 260px"
+              className="object-contain p-3 transition duration-300 group-hover:scale-105"
+            />
+          ) : (
+            <ProductImagePlaceholder title={product.title} />
+          )}
           <div className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-md bg-white px-2.5 py-1 text-sm font-semibold text-slate-950 shadow-sm">
             {product.rating.toFixed(1)}
             <Star className="h-4 w-4 fill-emerald-600 text-emerald-600" />
