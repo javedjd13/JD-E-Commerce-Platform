@@ -4,11 +4,22 @@ import prisma from '../../lib/prisma';
 const AppError = require('../../utils/AppError');
 
 function serializeProduct(product: any) {
+  const { publicId, ...rest } = product;
+
   return {
-    ...product,
+    ...rest,
+    id: publicId,
     price: Number(product.price),
     rating: Number(product.rating)
   };
+}
+
+function readProductPublicId(value: unknown) {
+  const id = Number(value);
+  if (!Number.isInteger(id) || id < 1) {
+    throw new AppError('Product id must be a positive integer', 400, 'INVALID_PRODUCT_ID');
+  }
+  return id;
 }
 
 export async function listProducts(req: Request, res: Response) {
@@ -51,7 +62,7 @@ export async function listProducts(req: Request, res: Response) {
 }
 
 export async function getProduct(req: Request, res: Response) {
-  const product = await prisma.product.findUnique({ where: { id: req.params.id } });
+  const product = await prisma.product.findUnique({ where: { publicId: readProductPublicId(req.params.id) } });
   if (!product) {
     throw new AppError('Product not found', 404, 'PRODUCT_NOT_FOUND');
   }

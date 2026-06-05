@@ -6,13 +6,13 @@ export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElemen
 }
 
 export function CardHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('space-y-1.5 p-5', className)} {...props} />;
+  return <div className={cn('space-y-component-xs p-component-lg', className)} {...props} />;
 }
 
 export function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
-  return <h3 className={cn('text-lg font-semibold leading-none', className)} {...props} />;
+  return <h3 className={cn('text-title-sm leading-none', className)} {...props} />;
 }
 
 export function CardContent({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('p-5 pt-0', className)} {...props} />;
+  return <div className={cn('p-component-lg pt-0', className)} {...props} />;
 }

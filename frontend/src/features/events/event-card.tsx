@@ -1,4 +1,5 @@
 import { CalendarDays, MapPin, Ticket } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -9,8 +10,8 @@ const currency = new Intl.NumberFormat('en-IN', { style: 'currency', currency: '
 export function EventCard({ event }: { event: Event }) {
   return (
     <Card className="overflow-hidden border-0 shadow-[0_16px_40px_rgba(15,23,42,0.08)]">
-      <div className="aspect-[16/10] overflow-hidden bg-secondary">
-        <img src={event.imageUrl} alt={event.title} className="h-full w-full object-cover transition-transform duration-300 hover:scale-105" />
+      <div className="relative aspect-[16/10] overflow-hidden bg-secondary">
+        <Image src={event.imageUrl} alt={event.title} fill sizes="(max-width: 768px) 100vw, 360px" className="object-cover transition-transform duration-300 hover:scale-105" />
       </div>
       <CardContent className="space-y-4 p-5">
         <div>

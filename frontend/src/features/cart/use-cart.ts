@@ -39,7 +39,7 @@ export function useCart() {
       onSuccess: (data) => syncCart(data.cart)
     }),
     updateItem: useMutation({
-      mutationFn: ({ productId, quantity }: { productId: string; quantity: number }) => updateCartItem(productId, quantity),
+      mutationFn: ({ productId, quantity }: { productId: number; quantity: number }) => updateCartItem(productId, quantity),
       onSuccess: (data) => syncCart(data.cart)
     }),
     removeItem: useMutation({

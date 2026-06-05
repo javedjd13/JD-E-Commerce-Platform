@@ -23,7 +23,7 @@ export function OrdersView() {
     const allOrders = data?.orders || [];
     return allOrders.filter((order) => {
       const firstItem = order.items[0];
-      const text = [order.id, firstItem?.product.title, firstItem?.product.category, order.status].filter(Boolean).join(' ').toLowerCase();
+      const text = [String(order.id), firstItem?.product.title, firstItem?.product.category, order.status].filter(Boolean).join(' ').toLowerCase();
       const matchesSearch = !search || text.includes(search.toLowerCase());
       const normalizedStatus = getStatusLabel(order).toLowerCase();
       const matchesStatus = !selectedStatuses.length || selectedStatuses.some((status) => normalizedStatus.includes(status.toLowerCase()));
@@ -87,7 +87,7 @@ function OrderCard({ order }: { order: Order }) {
         {firstItem ? <Image src={firstItem.product.images[0]} alt={firstItem.product.title} fill sizes="96px" className="object-contain" /> : null}
       </div>
       <div>
-        <h2 className="text-lg font-medium text-slate-950">{firstItem?.product.title || `Order #${order.id.slice(-8)}`}</h2>
+        <h2 className="text-lg font-medium text-slate-950">{firstItem?.product.title || `Order #${order.id}`}</h2>
         <p className="mt-3 text-base text-slate-500">{productCount} Order {getStatusLabel(order)}</p>
         {!isDelivered ? (
           <p className="mt-5 inline-flex rounded border border-blue-600 px-4 py-2 text-sm text-slate-800">Payment not successful. Please contact your bank for any money deducted.</p>

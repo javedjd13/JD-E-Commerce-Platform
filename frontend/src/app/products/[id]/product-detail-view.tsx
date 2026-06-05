@@ -3,39 +3,38 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronRight, Heart, RotateCcw, ShieldCheck, Star, Truck } from 'lucide-react';
+import { ChevronRight, RotateCcw, ShieldCheck, Star, Truck } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { ProductDetailPageSkeleton } from '@/components/common/loading-skeletons';
+import { ProductImagePlaceholder } from '@/components/common/ProductImagePlaceholder';
 import { getProductClient, productKeys } from '@/features/product/product.api';
+import { WishlistButton } from '@/features/wishlist/wishlist-button';
 import { currency, dealPrice } from '@/lib/api';
+import { Product } from '@/types/product';
 import { cn } from '@/utils/cn';
 import { AddToCartPanel } from './product-actions';
 
 type ProductDetailViewProps = {
   productId: string;
+  initialProduct: Product;
 };
 
-const fallbackImages = [
-  'https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=900&q=80',
-  'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=900&q=80',
-  'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=80'
-];
-
-export function ProductDetailView({ productId }: ProductDetailViewProps) {
+export function ProductDetailView({ productId, initialProduct }: ProductDetailViewProps) {
   const [selectedImage, setSelectedImage] = useState(0);
 
   const productQuery = useQuery({
     queryKey: productKeys.detail(productId),
     queryFn: () => getProductClient(productId),
+    initialData: { product: initialProduct },
     enabled: Boolean(productId),
+    refetchOnMount: 'always',
     staleTime: 5 * 60 * 1000,
     retry: 1
   });
 
   const product = productQuery.data?.product;
   const images = useMemo(() => {
-    const apiImages = product?.images?.filter(Boolean) ?? [];
-    return apiImages.length ? apiImages : fallbackImages;
+    return product?.images?.filter(Boolean) ?? [];
   }, [product?.images]);
 
   if (productQuery.isLoading) return <ProductDetailPageSkeleton />;
@@ -67,27 +66,35 @@ export function ProductDetailView({ productId }: ProductDetailViewProps) {
       <div className="grid gap-5 lg:grid-cols-[1.05fr_0.95fr]">
         <section className="grid gap-3 md:grid-cols-[88px_1fr]">
           <div className="order-2 flex gap-2 overflow-x-auto md:order-1 md:block md:space-y-2 md:overflow-visible">
-            {images.map((image, index) => (
-              <button
-                type="button"
-                key={`${image}-${index}`}
-                onClick={() => setSelectedImage(index)}
-                className={cn(
-                  'relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border bg-white',
-                  selectedImage === index ? 'border-blue-600 ring-2 ring-blue-100' : 'border-slate-200'
-                )}
-              >
-                <Image src={image} alt={`${product.title} image ${index + 1}`} fill sizes="80px" className="object-cover" />
-              </button>
-            ))}
+            {images.length ? (
+              images.map((image, index) => (
+                <button
+                  type="button"
+                  key={`${image}-${index}`}
+                  onClick={() => setSelectedImage(index)}
+                  className={cn(
+                    'relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border bg-white',
+                    selectedImage === index ? 'border-blue-600 ring-2 ring-blue-100' : 'border-slate-200'
+                  )}
+                >
+                  <Image src={image} alt={`${product.title} image ${index + 1}`} fill sizes="80px" className="object-cover" />
+                </button>
+              ))
+            ) : (
+              <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
+                <ProductImagePlaceholder title={product.title} />
+              </div>
+            )}
           </div>
 
           <div className="order-1 grid gap-3 sm:grid-cols-2 md:order-2">
             <div className="relative aspect-square overflow-hidden rounded-2xl bg-slate-100">
-              <Image src={images[selectedImage] ?? images[0]} alt={product.title} fill sizes="(max-width: 1024px) 100vw, 520px" className="object-cover" priority />
-              <button type="button" aria-label="Add to wishlist" className="absolute right-3 top-3 rounded-full bg-white p-2 text-rose-500 shadow-sm">
-                <Heart className="h-5 w-5 fill-current" />
-              </button>
+              {images[selectedImage] ? (
+                <Image src={images[selectedImage]} alt={product.title} fill sizes="(max-width: 1024px) 100vw, 520px" className="object-cover" priority />
+              ) : (
+                <ProductImagePlaceholder title={product.title} />
+              )}
+              <WishlistButton productId={product.id} showLabel={false} className="absolute right-3 top-3 h-10 w-10 rounded-full p-0 text-rose-500" />
             </div>
             <div className="hidden grid-rows-2 gap-3 sm:grid">
               {images.slice(1, 3).map((image, index) => (
@@ -95,6 +102,11 @@ export function ProductDetailView({ productId }: ProductDetailViewProps) {
                   <Image src={image} alt={`${product.title} preview ${index + 1}`} fill sizes="260px" className="object-cover" />
                 </div>
               ))}
+              {!images.slice(1, 3).length && (
+                <div className="relative row-span-2 overflow-hidden rounded-2xl bg-slate-100">
+                  <ProductImagePlaceholder title={product.title} />
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -137,7 +149,10 @@ export function ProductDetailView({ productId }: ProductDetailViewProps) {
           </div>
 
           <div className="sticky bottom-0 z-20 rounded-2xl bg-white p-4 shadow-lg ring-1 ring-slate-200 lg:static lg:shadow-sm">
-            <AddToCartPanel productId={product.id} />
+            <div className="flex flex-wrap items-center gap-3">
+              <AddToCartPanel productId={product.id} />
+              <WishlistButton productId={product.id} />
+            </div>
           </div>
         </section>
       </div>

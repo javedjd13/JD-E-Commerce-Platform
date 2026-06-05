@@ -22,6 +22,7 @@ enum OrderStatus {
 
 model User {
   id              String    @id @default(cuid())
+  publicId        Int       @unique @default(autoincrement())
   name            String
   email           String    @unique
   password        String
@@ -39,6 +40,7 @@ model User {
 
 model Address {
   id         String   @id @default(cuid())
+  publicId   Int      @unique @default(autoincrement())
   userId     String
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   label      String?
@@ -59,6 +61,7 @@ model Address {
 
 model Product {
   id          String      @id @default(cuid())
+  publicId    Int         @unique @default(autoincrement())
   title       String      @unique
   description String
   price       Decimal     @db.Decimal(10, 2)
@@ -80,6 +83,7 @@ model Product {
 
 model Cart {
   id        String     @id @default(cuid())
+  publicId  Int        @unique @default(autoincrement())
   userId    String     @unique
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   items     CartItem[]
@@ -89,6 +93,7 @@ model Cart {
 
 model CartItem {
   id        String   @id @default(cuid())
+  publicId  Int      @unique @default(autoincrement())
   cartId    String
   productId String
   quantity  Int      @default(1)
@@ -102,10 +107,16 @@ model CartItem {
 
 model Order {
   id          String      @id @default(cuid())
+  publicId    Int         @unique @default(autoincrement())
   userId      String
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   totalAmount Decimal     @db.Decimal(10, 2)
   status      OrderStatus @default(PLACED)
+  paymentMethod String    @default("COD")
+  paymentStatus String    @default("COD_PENDING")
+  razorpayOrderId String? @unique
+  razorpayPaymentId String? @unique
+  razorpaySignature String?
   items       OrderItem[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
@@ -113,6 +124,7 @@ model Order {
 
 model OrderItem {
   id        String  @id @default(cuid())
+  publicId  Int     @unique @default(autoincrement())
   orderId   String
   productId String
   quantity  Int
@@ -123,6 +135,7 @@ model OrderItem {
 
 model WishlistItem {
   id        String   @id @default(cuid())
+  publicId  Int      @unique @default(autoincrement())
   userId    String
   productId String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -16,7 +16,7 @@ function toPublicUser(user: any) {
   const lastName = user.last_name || user.lastName || nameParts.slice(1).join(' ');
   const name = [firstName, lastName].filter(Boolean).join(' ') || user.name || '';
   const addresses = (user.addresses || []).map((address: any) => ({
-    id: address.id,
+    id: address.publicId,
     label: address.label,
     fullName: address.fullName,
     phone: address.phone,
@@ -32,7 +32,7 @@ function toPublicUser(user: any) {
   const profileImageUrl = user.profileImageUrl || getProfileImageUrl(name, user.email);
 
   return {
-    id: user.id,
+    id: user.publicId,
     name,
     firstName: firstName || undefined,
     lastName: lastName || undefined,
@@ -50,6 +50,14 @@ function toPublicUser(user: any) {
     createdAt: user.createdAt || user.created_at,
     updatedAt: user.updatedAt || user.updated_at
   };
+}
+
+function readPublicId(value: unknown, label: string) {
+  const id = Number(value);
+  if (!Number.isInteger(id) || id < 1) {
+    throw new AppError(`${label} id must be a positive integer`, 400, 'INVALID_ID');
+  }
+  return id;
 }
 
 function normalizeAddressInput(body: any) {
@@ -176,13 +184,13 @@ export async function updateAddress(req: Request, res: Response) {
   validateAddressInput(input);
 
   const existing = await prisma.address.findFirst({
-    where: { id: req.params.addressId, userId: req.user!.sub }
+    where: { publicId: readPublicId(req.params.addressId, 'Address'), userId: req.user!.sub }
   });
   if (!existing) throw new AppError('Address not found', 404, 'ADDRESS_NOT_FOUND');
 
   await unsetDefaultAddressIfNeeded(req.user!.sub, input.isDefault);
   await prisma.address.update({
-    where: { id: req.params.addressId },
+    where: { id: existing.id },
     data: input
   });
 
@@ -192,11 +200,11 @@ export async function updateAddress(req: Request, res: Response) {
 
 export async function deleteAddress(req: Request, res: Response) {
   const existing = await prisma.address.findFirst({
-    where: { id: req.params.addressId, userId: req.user!.sub }
+    where: { publicId: readPublicId(req.params.addressId, 'Address'), userId: req.user!.sub }
   });
   if (!existing) throw new AppError('Address not found', 404, 'ADDRESS_NOT_FOUND');
 
-  await prisma.address.delete({ where: { id: req.params.addressId } });
+  await prisma.address.delete({ where: { id: existing.id } });
 
   if (existing.isDefault) {
     const nextAddress = await prisma.address.findFirst({

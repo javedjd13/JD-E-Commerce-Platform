@@ -1,3 +1,4 @@
+import { getProduct } from '@/features/product/product.api';
 import { ProductDetailView } from './product-detail-view';
 
 type ProductDetailProps = {
@@ -6,5 +7,7 @@ type ProductDetailProps = {
 
 export default async function ProductDetailPage({ params }: ProductDetailProps) {
   const { id } = await params;
-  return <ProductDetailView productId={id} />;
+  const { product } = await getProduct(id);
+
+  return <ProductDetailView productId={id} initialProduct={product} />;
 }

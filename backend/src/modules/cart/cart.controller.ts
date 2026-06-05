@@ -4,6 +4,35 @@ import { productPrice } from '../../utils/money';
 
 const AppError = require('../../utils/AppError');
 
+function serializeProduct(product: any) {
+  const { publicId, ...rest } = product;
+
+  return {
+    ...rest,
+    id: publicId,
+    price: Number(product.price),
+    rating: Number(product.rating)
+  };
+}
+
+function readProductPublicId(value: unknown) {
+  const productId = Number(value);
+  if (!Number.isInteger(productId) || productId < 1) {
+    throw new AppError('Product id must be a positive integer', 400, 'INVALID_PRODUCT_ID');
+  }
+  return productId;
+}
+
+async function findInternalProductId(productId: unknown) {
+  const product = await prisma.product.findUnique({
+    where: { publicId: readProductPublicId(productId) },
+    select: { id: true }
+  });
+
+  if (!product) throw new AppError('Product not found', 404, 'PRODUCT_NOT_FOUND');
+  return product.id;
+}
+
 async function getOrCreateCart(userId: string) {
   return prisma.cart.upsert({
     where: { userId },
@@ -22,21 +51,17 @@ function serializeCart(cart: any) {
   const items = cart.items.map((item: any) => {
     const unitPrice = productPrice(item.product.price, item.product.discount);
     return {
-      id: item.id,
-      productId: item.productId,
+      id: item.publicId,
+      productId: item.product.publicId,
       quantity: item.quantity,
       unitPrice,
       lineTotal: unitPrice * item.quantity,
-      product: {
-        ...item.product,
-        price: Number(item.product.price),
-        rating: Number(item.product.rating)
-      }
+      product: serializeProduct(item.product)
     };
   });
 
   return {
-    id: cart.id,
+    id: cart.publicId,
     items,
     subtotal: items.reduce((sum: number, item: any) => sum + item.lineTotal, 0)
   };
@@ -61,12 +86,13 @@ export async function addToCart(req: Request, res: Response) {
   const { productId, quantity = 1 } = req.body;
   if (!productId) throw new AppError('Product is required', 400, 'VALIDATION_ERROR');
   const requestedQuantity = readQuantity(quantity);
+  const internalProductId = await findInternalProductId(productId);
 
   const cart = await getOrCreateCart(req.user!.sub);
   await prisma.cartItem.upsert({
-    where: { cartId_productId: { cartId: cart.id, productId } },
+    where: { cartId_productId: { cartId: cart.id, productId: internalProductId } },
     update: { quantity: { increment: requestedQuantity } },
-    create: { cartId: cart.id, productId, quantity: requestedQuantity }
+    create: { cartId: cart.id, productId: internalProductId, quantity: requestedQuantity }
   });
 
   res.status(201).json({ cart: serializeCart(await getOrCreateCart(req.user!.sub)) });
@@ -78,13 +104,14 @@ export async function updateCart(req: Request, res: Response) {
     throw new AppError('Product and quantity are required', 400, 'VALIDATION_ERROR');
   }
   const requestedQuantity = readQuantity(quantity, { allowZero: true });
+  const internalProductId = await findInternalProductId(productId);
 
   const cart = await getOrCreateCart(req.user!.sub);
   if (requestedQuantity === 0) {
-    await prisma.cartItem.deleteMany({ where: { cartId: cart.id, productId } });
+    await prisma.cartItem.deleteMany({ where: { cartId: cart.id, productId: internalProductId } });
   } else {
     const result = await prisma.cartItem.updateMany({
-      where: { cartId: cart.id, productId },
+      where: { cartId: cart.id, productId: internalProductId },
       data: { quantity: requestedQuantity }
     });
     if (!result.count) throw new AppError('Cart item not found', 404, 'CART_ITEM_NOT_FOUND');
@@ -96,9 +123,10 @@ export async function updateCart(req: Request, res: Response) {
 export async function removeFromCart(req: Request, res: Response) {
   const { productId } = req.params;
   if (!productId) throw new AppError('Product is required', 400, 'VALIDATION_ERROR');
+  const internalProductId = await findInternalProductId(productId);
 
   const cart = await getOrCreateCart(req.user!.sub);
-  await prisma.cartItem.deleteMany({ where: { cartId: cart.id, productId } });
+  await prisma.cartItem.deleteMany({ where: { cartId: cart.id, productId: internalProductId } });
 
   res.json({ cart: serializeCart(await getOrCreateCart(req.user!.sub)) });
 }

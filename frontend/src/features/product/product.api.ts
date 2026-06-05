@@ -12,7 +12,7 @@ export const productKeys = {
   lists: () => [...productKeys.all, 'list'] as const,
   list: (filters: ProductFilters = {}) => [...productKeys.lists(), filters] as const,
   details: () => [...productKeys.all, 'detail'] as const,
-  detail: (id: string) => [...productKeys.details(), id] as const
+  detail: (id: string | number) => [...productKeys.details(), id] as const
 };
 
 function toQuery(filters: ProductFilters = {}) {
@@ -32,10 +32,10 @@ export function getProductsClient(filters?: ProductFilters) {
   return api<ProductsResponse>(`/products${toQuery(filters)}`);
 }
 
-export function getProduct(id: string) {
+export function getProduct(id: string | number) {
   return serverApi<{ product: Product }>(`/products/${id}`, { cache: 'no-store' });
 }
 
-export function getProductClient(id: string) {
+export function getProductClient(id: string | number) {
   return api<{ product: Product }>(`/products/${id}`);
 }

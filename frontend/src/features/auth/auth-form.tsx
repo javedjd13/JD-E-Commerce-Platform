@@ -36,21 +36,21 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-72px)] max-w-7xl items-center justify-center px-4 py-8">
-      <form onSubmit={onSubmit} className="w-full max-w-md rounded-3xl bg-white p-8 shadow-sm ring-1 ring-slate-200">
-        <p className="text-sm font-semibold text-blue-700">NovaCart account</p>
+      <form onSubmit={onSubmit} className="w-full max-w-md rounded-3xl bg-card p-8 text-card-foreground shadow-sm ring-1 ring-border">
+        <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">NexaMart account</p>
         <h1 className="mt-2 text-3xl font-bold">{isRegister ? 'Create account' : 'Welcome back'}</h1>
         <div className="mt-6 space-y-4">
           {isRegister ? <input name="name" required placeholder="Name" className="h-12 w-full rounded-xl border px-3" /> : null}
           <input name="email" required type="email" placeholder="Email" className="h-12 w-full rounded-xl border px-3" />
           <input name="password" required type="password" placeholder="Password" className="h-12 w-full rounded-xl border px-3" />
         </div>
-        {error ? <p className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error}</p> : null}
+        {error ? <p className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-700 ring-1 ring-rose-100 dark:bg-rose-950/40 dark:text-rose-200 dark:ring-rose-900/60">{error}</p> : null}
         <button disabled={mutation.isPending} className="mt-6 h-12 w-full rounded-xl bg-blue-600 font-bold text-white disabled:opacity-60">
           {mutation.isPending ? 'Please wait' : isRegister ? 'Register' : 'Login'}
         </button>
-        <p className="mt-5 text-center text-sm text-slate-500">
-          {isRegister ? 'Already registered?' : 'New to NovaCart?'}{' '}
-          <Link href={isRegister ? '/login' : '/register'} className="font-bold text-blue-700">
+        <p className="mt-5 text-center text-sm text-muted-foreground">
+          {isRegister ? 'Already registered?' : 'New to NexaMart?'}{' '}
+          <Link href={isRegister ? '/login' : '/register'} className="font-bold text-blue-700 dark:text-blue-300">
             {isRegister ? 'Login' : 'Create account'}
           </Link>
         </p>

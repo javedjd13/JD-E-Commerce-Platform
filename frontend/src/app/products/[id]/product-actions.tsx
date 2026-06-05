@@ -4,7 +4,7 @@ import { ShoppingCart } from 'lucide-react';
 import { useState } from 'react';
 import { useCart } from '@/features/cart/use-cart';
 
-export function AddToCartPanel({ productId }: { productId: string }) {
+export function AddToCartPanel({ productId }: { productId: number }) {
   const [quantity, setQuantity] = useState(1);
   const { addItem } = useCart();
 

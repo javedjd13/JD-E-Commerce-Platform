@@ -1,8 +1,8 @@
 import { Product } from './product';
 
 export type CartItem = {
-  id: string;
-  productId: string;
+  id: number;
+  productId: number;
   quantity: number;
   unitPrice: number;
   lineTotal: number;
@@ -10,7 +10,7 @@ export type CartItem = {
 };
 
 export type Cart = {
-  id: string;
+  id: number;
   items: CartItem[];
   subtotal: number;
 };
