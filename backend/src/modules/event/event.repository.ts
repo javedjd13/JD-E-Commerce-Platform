@@ -1,4 +1,5 @@
 const db = require('../../database/db');
+import { isMissingTableError } from '../../utils/dbErrors';
 
 function mapEvent(row) {
   return {
@@ -40,22 +41,28 @@ async function listEvents(filters) {
     where.push(`(e.title ILIKE $${params.length} OR e.venue ILIKE $${params.length})`);
   }
 
-  const { rows } = await db.query(
-    `SELECT e.*, COALESCE(MIN(t.price), 0) AS min_price
+  try {
+    const { rows } = await db.query(
+      `SELECT e.*, COALESCE(MIN(t.price), 0) AS min_price
      FROM events e
      LEFT JOIN event_ticket_tiers t ON t.event_id = e.id
      WHERE ${where.join(' AND ')}
      GROUP BY e.id
      ORDER BY e.starts_at ASC`,
-    params
-  );
+      params
+    );
 
-  return rows.map(mapEvent);
+    return rows.map(mapEvent);
+  } catch (error) {
+    if (isMissingTableError(error)) return [];
+    throw error;
+  }
 }
 
 async function getEventById(id) {
-  const { rows } = await db.query(
-    `SELECT e.*,
+  try {
+    const { rows } = await db.query(
+      `SELECT e.*,
             COALESCE(MIN(t.price), 0) AS min_price,
             COALESCE(
               json_agg(
@@ -74,10 +81,14 @@ async function getEventById(id) {
      LEFT JOIN event_ticket_tiers t ON t.event_id = e.id
      WHERE e.id = $1 AND e.is_active = TRUE
      GROUP BY e.id`,
-    [id]
-  );
+      [id]
+    );
 
-  return rows[0] ? mapEvent(rows[0]) : null;
+    return rows[0] ? mapEvent(rows[0]) : null;
+  } catch (error) {
+    if (isMissingTableError(error)) return null;
+    throw error;
+  }
 }
 
 module.exports = { listEvents, getEventById };

@@ -21,8 +21,8 @@ export default async function HomePage() {
 
   return (
     <>
-        <CategoryNav />
-        <div className="mx-auto max-w-7xl space-y-5 px-4 py-5">
+      <CategoryNav />
+      <div className="mx-auto max-w-7xl space-y-5 px-4 py-5">
         <OfferCarousel products={bannerProducts.length ? bannerProducts : products.slice(0, 10)} />
         <ProductRail title="Top Rated" products={trending.length ? trending.slice(0, 4) : products.slice(0, 4)} tone="spotlight" />
         <ProductRail title="Featured Brands" products={suggested.length ? suggested : products.slice(0, 8)} />

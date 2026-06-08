@@ -1,7 +1,7 @@
 import { ApiError } from "@/types/api";
 
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
 type RequestOptions = RequestInit & {
   auth?: boolean;

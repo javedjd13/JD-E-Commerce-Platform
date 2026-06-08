@@ -3,7 +3,7 @@ const { authenticate, authorize } = require('../../middleware/auth');
 const asyncHandler = require('../../utils/asyncHandler');
 const db = require('../../database/db');
 
-router.use(authenticate, authorize('admin'));
+router.use(authenticate, authorize('ADMIN'));
 
 router.get('/dashboard', asyncHandler(async (req, res) => {
   const [users, products, orders] = await Promise.all([

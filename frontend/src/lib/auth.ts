@@ -1,7 +1,7 @@
 import { User, UserAddress } from "@/types/user";
 import { api } from "./api";
 
-export type AuthResponse = { user: User };
+export type AuthResponse = { user: User | null };
 export type ProfileInput = {
   name: string;
   email: string;

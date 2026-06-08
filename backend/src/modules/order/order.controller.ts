@@ -1,19 +1,13 @@
 import type { Request, Response } from 'express';
 import crypto from 'crypto';
 import prisma from '../../lib/prisma';
+import { created, ok } from '../../utils/http';
+import { readPositiveInt } from '../../utils/ids';
 import { productPrice } from '../../utils/money';
 
 const AppError = require('../../utils/AppError');
 const Razorpay = require('razorpay');
 const env = require('../../config/env');
-
-function readPublicId(value: unknown, label: string) {
-  const id = Number(value);
-  if (!Number.isInteger(id) || id < 1) {
-    throw new AppError(`${label} id must be a positive integer`, 400, 'INVALID_ID');
-  }
-  return id;
-}
 
 function serializeOrder(order: any) {
   const primaryAddress = order.user?.addresses?.find((address: any) => address.isDefault) || order.user?.addresses?.[0] || null;
@@ -114,33 +108,36 @@ async function createOrderFromCart(userId: string, payment: {
 } = {}) {
   const { cart, totalAmount } = await getUserCart(userId);
 
-  const order = await prisma.$transaction(async (tx) => {
-    const created = await tx.order.create({
-      data: {
-        userId,
-        totalAmount,
-        ...payment,
-        items: {
-          create: cart.items.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            price: productPrice(item.product.price, item.product.discount)
-          }))
-        }
-      },
-      include: { user: { include: { addresses: true } }, items: { include: { product: true } } }
-    });
+  const order = await prisma.$transaction(
+    async (tx) => {
+      const created = await tx.order.create({
+        data: {
+          userId,
+          totalAmount,
+          ...payment,
+          items: {
+            create: cart.items.map((item) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              price: productPrice(item.product.price, item.product.discount)
+            }))
+          }
+        },
+        include: { user: { include: { addresses: true } }, items: { include: { product: true } } }
+      });
 
-    await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
-    return created;
-  });
+      await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
+      return created;
+    },
+    { maxWait: 10000, timeout: 20000 }
+  );
 
   return order;
 }
 
 export async function createOrder(req: Request, res: Response) {
   const order = await createOrderFromCart(req.user!.sub);
-  return res.status(201).json({ order: serializeOrder(order) });
+  return created(res, { order: serializeOrder(order) });
 }
 
 export async function createRazorpayOrder(req: Request, res: Response) {
@@ -155,7 +152,7 @@ export async function createRazorpayOrder(req: Request, res: Response) {
     receipt: `cart_${cart.publicId}_${Date.now()}`
   });
 
-  res.status(201).json({
+  return created(res, {
     razorpayOrderId: razorpayOrder.id,
     amount: razorpayOrder.amount,
     currency: razorpayOrder.currency,
@@ -184,7 +181,7 @@ export async function verifyRazorpayPayment(req: Request, res: Response) {
   });
 
   if (existing) {
-    return res.json({ order: serializeOrder(existing) });
+    return ok(res, { order: serializeOrder(existing) });
   }
 
   const expectedSignature = crypto
@@ -212,7 +209,7 @@ export async function verifyRazorpayPayment(req: Request, res: Response) {
     razorpaySignature
   });
 
-  return res.status(201).json({ order: serializeOrder(order) });
+  return created(res, { order: serializeOrder(order) });
 }
 
 export async function listOrders(req: Request, res: Response) {
@@ -222,13 +219,13 @@ export async function listOrders(req: Request, res: Response) {
     orderBy: { createdAt: 'desc' }
   });
 
-  res.json({ orders: orders.map(serializeOrder) });
+  return ok(res, { orders: orders.map(serializeOrder) });
 }
 
 export async function getOrder(req: Request, res: Response) {
   const order = await prisma.order.findFirst({
     where: {
-      publicId: readPublicId(req.params.orderId, 'Order'),
+      publicId: readPositiveInt(req.params.orderId, 'Order'),
       userId: req.user!.sub
     },
     include: { user: { include: { addresses: { orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }] } } }, items: { include: { product: true } } }
@@ -238,5 +235,5 @@ export async function getOrder(req: Request, res: Response) {
     throw new AppError('Order not found', 404, 'ORDER_NOT_FOUND');
   }
 
-  res.json({ order: serializeOrder(order) });
+  return ok(res, { order: serializeOrder(order) });
 }

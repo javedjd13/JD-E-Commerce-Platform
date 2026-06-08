@@ -35,5 +35,5 @@ export type User = {
 };
 
 export type AuthResponse = {
-  user: User;
+  user: User | null;
 };

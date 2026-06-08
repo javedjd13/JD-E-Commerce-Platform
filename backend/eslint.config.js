@@ -1,9 +1,13 @@
+const tseslint = require('typescript-eslint');
+
 module.exports = [
+  ...tseslint.configs.recommended,
   {
     files: ['src/**/*.ts'],
     languageOptions: {
       ecmaVersion: 2022,
-      sourceType: 'commonjs',
+      parser: tseslint.parser,
+      sourceType: 'module',
       globals: {
         require: 'readonly',
         module: 'readonly',
@@ -12,8 +16,17 @@ module.exports = [
       }
     },
     rules: {
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-      'no-console': 'error'
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-require-imports': 'off',
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      'no-console': 'error',
+      'no-unused-vars': 'off'
+    }
+  },
+  {
+    files: ['src/scripts/**/*.ts'],
+    rules: {
+      'no-console': 'off'
     }
   }
 ];

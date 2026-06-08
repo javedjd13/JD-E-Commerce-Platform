@@ -5,6 +5,7 @@ const validate = require('../../middleware/validate');
 const asyncHandler = require('../../utils/asyncHandler');
 const AppError = require('../../utils/AppError');
 const db = require('../../database/db');
+import { isMissingTableError } from '../../utils/dbErrors';
 
 const createBookingSchema = Joi.object({
   eventId: Joi.string().uuid().required(),
@@ -17,8 +18,9 @@ const createBookingSchema = Joi.object({
 router.use(authenticate);
 
 router.get('/', asyncHandler(async (req, res) => {
-  const { rows } = await db.query(
-    `SELECT b.id, b.quantity, b.status, b.payment_status, b.total_amount, b.created_at,
+  try {
+    const { rows } = await db.query(
+      `SELECT b.id, b.quantity, b.status, b.payment_status, b.total_amount, b.created_at,
             e.id AS event_id, e.title, e.city, e.venue, e.starts_at, e.image_url,
             t.name AS tier_name
      FROM bookings b
@@ -26,30 +28,37 @@ router.get('/', asyncHandler(async (req, res) => {
      JOIN event_ticket_tiers t ON t.id = b.ticket_tier_id
      WHERE b.user_id = $1
      ORDER BY b.created_at DESC`,
-    [req.user.sub]
-  );
+      [req.user.sub]
+    );
 
-  res.json(rows.map((row) => ({
-    id: row.id,
-    quantity: row.quantity,
-    status: row.status,
-    paymentStatus: row.payment_status,
-    totalAmount: Number(row.total_amount),
-    createdAt: row.created_at,
-    event: {
-      id: row.event_id,
-      title: row.title,
-      city: row.city,
-      venue: row.venue,
-      startsAt: row.starts_at,
-      imageUrl: row.image_url
-    },
-    tierName: row.tier_name
-  })));
+    res.json(rows.map((row) => ({
+      id: row.id,
+      quantity: row.quantity,
+      status: row.status,
+      paymentStatus: row.payment_status,
+      totalAmount: Number(row.total_amount),
+      createdAt: row.created_at,
+      event: {
+        id: row.event_id,
+        title: row.title,
+        city: row.city,
+        venue: row.venue,
+        startsAt: row.starts_at,
+        imageUrl: row.image_url
+      },
+      tierName: row.tier_name
+    })));
+  } catch (error) {
+    if (isMissingTableError(error)) return res.json([]);
+    throw error;
+  }
 }));
 
 router.post('/', validate(createBookingSchema), asyncHandler(async (req, res) => {
-  const booking = await db.transaction(async (client) => {
+  let booking;
+
+  try {
+    booking = await db.transaction(async (client) => {
     const tierResult = await client.query(
       `SELECT t.*, e.id AS event_id
        FROM event_ticket_tiers t
@@ -89,7 +98,13 @@ router.post('/', validate(createBookingSchema), asyncHandler(async (req, res) =>
     );
 
     return rows[0];
-  });
+    });
+  } catch (error) {
+    if (isMissingTableError(error)) {
+      throw new AppError('Booking feature is not configured for this database', 503, 'BOOKING_UNAVAILABLE');
+    }
+    throw error;
+  }
 
   res.status(201).json({
     id: booking.id,

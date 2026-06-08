@@ -1,18 +1,10 @@
 import type { Request, Response } from 'express';
 import prisma from '../../lib/prisma';
+import { created, ok } from '../../utils/http';
+import { readPositiveInt } from '../../utils/ids';
+import { serializeProduct } from '../product/product.serializer';
 
 const AppError = require('../../utils/AppError');
-
-function serializeProduct(product: any) {
-  const { publicId, ...rest } = product;
-
-  return {
-    ...rest,
-    id: publicId,
-    price: Number(product.price),
-    rating: Number(product.rating)
-  };
-}
 
 function serializeWishlistItem(item: any) {
   return {
@@ -31,18 +23,10 @@ function serializeWishlist(items: any[]) {
   };
 }
 
-function readProductPublicId(value: unknown) {
-  const productId = Number(value);
-  if (!Number.isInteger(productId) || productId < 1) {
-    throw new AppError('Product id must be a positive integer', 400, 'INVALID_PRODUCT_ID');
-  }
-  return productId;
-}
-
 async function findProductByPublicId(value: unknown) {
   const product = await prisma.product.findFirst({
     where: {
-      publicId: readProductPublicId(value),
+      publicId: readPositiveInt(value, 'Product', 'INVALID_PRODUCT_ID'),
       NOT: { tags: { has: 'archived' } }
     },
     select: { id: true }
@@ -61,7 +45,7 @@ async function getWishlistItems(userId: string) {
 }
 
 export async function getWishlist(req: Request, res: Response) {
-  res.json({ wishlist: serializeWishlist(await getWishlistItems(req.user!.sub)) });
+  return ok(res, { wishlist: serializeWishlist(await getWishlistItems(req.user!.sub)) });
 }
 
 export async function addToWishlist(req: Request, res: Response) {
@@ -73,7 +57,7 @@ export async function addToWishlist(req: Request, res: Response) {
     include: { product: true }
   });
 
-  res.status(201).json({
+  return created(res, {
     item: serializeWishlistItem(item),
     wishlist: serializeWishlist(await getWishlistItems(req.user!.sub))
   });
@@ -85,5 +69,5 @@ export async function removeFromWishlist(req: Request, res: Response) {
     where: { userId: req.user!.sub, productId: product.id }
   });
 
-  res.json({ wishlist: serializeWishlist(await getWishlistItems(req.user!.sub)) });
+  return ok(res, { wishlist: serializeWishlist(await getWishlistItems(req.user!.sub)) });
 }
