@@ -1,9 +1,12 @@
 import { API_URL } from "@/lib/api";
+import { assertApiUrl } from "./api-url";
 
 export async function serverApi<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
+  assertApiUrl(API_URL);
+
   let response: Response;
 
   try {

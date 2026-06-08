@@ -1,5 +1,6 @@
-export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+import { assertApiUrl, getApiUrl } from "@/services/api-url";
+
+export const API_URL = getApiUrl();
 
 export class ApiError extends Error {
   status: number;
@@ -17,6 +18,8 @@ export async function api<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
+  assertApiUrl(API_URL);
+
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
     headers: {

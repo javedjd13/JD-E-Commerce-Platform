@@ -4,6 +4,8 @@ import { notFound } from 'next/navigation';
 import { BookingPanel } from '@/features/events/booking-panel';
 import { getEvent } from '@/features/events/event.api';
 
+export const dynamic = 'force-dynamic';
+
 type EventPageProps = {
   params: Promise<{ id: string }>;
 };

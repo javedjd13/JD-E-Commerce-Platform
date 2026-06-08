@@ -1,6 +1,8 @@
 import { getProduct } from '@/features/product/product.api';
 import { ProductDetailView } from './product-detail-view';
 
+export const dynamic = 'force-dynamic';
+
 type ProductDetailProps = {
   params: Promise<{ id: string }>;
 };

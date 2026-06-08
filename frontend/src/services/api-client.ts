@@ -1,7 +1,7 @@
 import { ApiError } from "@/types/api";
+import { assertApiUrl, getApiUrl } from "./api-url";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+const API_URL = getApiUrl();
 
 type RequestOptions = RequestInit & {
   auth?: boolean;
@@ -29,6 +29,8 @@ export async function apiClient<T>(
   path: string,
   options: RequestOptions = {},
 ): Promise<T> {
+  assertApiUrl(API_URL);
+
   const headers = new Headers(options.headers);
   const isFormData = options.body instanceof FormData;
 
