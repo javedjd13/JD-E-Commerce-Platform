@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
-import { ChevronDown, Menu, Search, ShoppingCart, UserRound } from 'lucide-react';
+import { ChevronDown, Menu, MessageCircle, Search, ShoppingCart, UserRound } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAppSelector } from '@/store/hooks';
 import { BrandLogo } from './BrandLogo';
@@ -40,6 +40,12 @@ export function Header() {
             {user?.name || 'Profile'}
             <ChevronDown className="h-4 w-4" />
           </Link>
+          {user ? (
+            <Link href="/chat" className="flex h-control-lg items-center gap-component-xs rounded-2xl px-component-sm text-body-sm font-semibold hover:bg-muted">
+              <MessageCircle className="h-4 w-4" />
+              Chat
+            </Link>
+          ) : null}
           <Link href="/cart" className="relative flex h-control-lg items-center gap-component-xs rounded-2xl px-component-sm text-body-sm font-semibold hover:bg-muted">
             <ShoppingCart className="h-4 w-4" />
             Cart

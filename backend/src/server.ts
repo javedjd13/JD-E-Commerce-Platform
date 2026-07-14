@@ -2,9 +2,14 @@ const app = require("./app");
 const env = require("./config/env");
 const logger = require("./config/logger");
 const { pool } = require("./database/db");
+import { createServer } from "http";
 import prisma from "./lib/prisma";
+import { initializeSocket } from "./socket";
 
-const server = app.listen(env.port, () => {
+const server = createServer(app);
+initializeSocket(server);
+
+server.listen(env.port, () => {
   logger.info(`API listening on port ${env.port}`);
 });
 

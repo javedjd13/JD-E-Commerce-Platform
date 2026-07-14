@@ -10,6 +10,7 @@ const bookingRoutes = require("./modules/booking/booking.routes");
 const categoryRoutes = require("./modules/category/category.routes");
 const bannerRoutes = require("./modules/banner/banner.routes");
 const adminRoutes = require("./modules/admin/admin.routes");
+const chatRoutes = require("./modules/chat/chat.routes");
 
 const routeRegistry = [
   ["/auth", authRoutes],
@@ -23,6 +24,7 @@ const routeRegistry = [
   ["/categories", categoryRoutes],
   ["/banners", bannerRoutes],
   ["/admin", adminRoutes],
+  ["/chat", chatRoutes],
 ];
 
 routeRegistry.forEach(([path, routes]) => router.use(path, routes));

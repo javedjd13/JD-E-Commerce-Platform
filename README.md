@@ -106,13 +106,15 @@ JWT_ACCESS_SECRET=replace-with-a-long-random-secret
 JWT_ACCESS_EXPIRES_IN=7d
 ```
 
-Frontend can use this optional environment variable:
+Frontend uses this environment variable (optional locally, required in production):
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
 ```
 
-If it is not set, the frontend defaults to `http://localhost:4000/api/v1`.
+If it is not set locally, the frontend defaults to `http://localhost:5000/api/v1`.
+For production, set it to the public HTTPS URL of the deployed backend; never use
+`localhost` or `127.0.0.1` because those refer to the frontend deployment itself.
 
 ## Installation
 
@@ -275,5 +277,7 @@ npm run build
 - Use a strong `JWT_ACCESS_SECRET`
 - Set `DATABASE_URL` to the production PostgreSQL URL
 - Set `CORS_ORIGIN` to the deployed frontend URL
-- Set `NEXT_PUBLIC_API_URL` to the deployed backend API URL
+- In Vercel, set `NEXT_PUBLIC_API_URL=https://<backend-domain>/api/v1` for the
+  Production environment, then redeploy the frontend (public variables are embedded
+  during the Next.js build)
 - Run Prisma migration/generation during deployment
