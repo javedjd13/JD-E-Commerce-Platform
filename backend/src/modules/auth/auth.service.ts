@@ -61,7 +61,11 @@ async function signup(input) {
 
 async function login({ email, password }) {
   const user = await authRepository.findUserByEmail(email);
-  if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+  const passwordHash = user?.password_hash;
+  const canComparePassword = typeof passwordHash === 'string' && passwordHash.startsWith('$2');
+  const passwordMatches = canComparePassword ? await bcrypt.compare(password, passwordHash).catch(() => false) : false;
+
+  if (!user || !passwordMatches) {
     throw new AppError('Invalid email or password', 401, 'INVALID_CREDENTIALS');
   }
 

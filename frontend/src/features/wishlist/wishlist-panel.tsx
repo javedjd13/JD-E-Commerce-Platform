@@ -7,14 +7,17 @@ import Link from 'next/link';
 import { ProductImagePlaceholder } from '@/components/common/ProductImagePlaceholder';
 import { Badge, Button, EmptyState, SectionHeader, Skeleton } from '@/components/ui';
 import { currency, dealPrice } from '@/lib/api';
+import { useAuth } from '@/hooks/useAuth';
 import { removeWishlistItem, getWishlist, wishlistKeys } from './wishlist.api';
 
 export function WishlistPanel() {
   const queryClient = useQueryClient();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const wishlistQuery = useQuery({
     queryKey: wishlistKeys.all,
     queryFn: getWishlist,
-    retry: false
+    retry: false,
+    enabled: Boolean(user)
   });
   const removeMutation = useMutation({
     mutationFn: removeWishlistItem,
@@ -23,11 +26,11 @@ export function WishlistPanel() {
     }
   });
 
-  if (wishlistQuery.isLoading) {
+  if (isAuthLoading || wishlistQuery.isLoading) {
     return <Skeleton className="h-48" />;
   }
 
-  if (wishlistQuery.isError) {
+  if (!user || wishlistQuery.isError) {
     return (
       <div>
         <SectionHeader title="My Wishlist" />

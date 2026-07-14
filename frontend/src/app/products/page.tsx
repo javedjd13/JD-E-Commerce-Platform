@@ -2,6 +2,8 @@ import { getProducts } from '@/features/product/product.api';
 import { ProductFilters } from '@/types/product';
 import { ProductsView } from './products-view';
 
+export const dynamic = 'force-dynamic';
+
 type ProductsPageProps = {
   searchParams: Promise<ProductFilters>;
 };

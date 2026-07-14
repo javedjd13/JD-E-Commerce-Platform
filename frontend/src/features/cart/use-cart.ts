@@ -6,6 +6,7 @@ import { AddCartItemInput, addCartItem, getCart, removeCartItem, updateCartItem 
 import { setCount } from '@/store/cartStore';
 import { useAppDispatch } from '@/store/hooks';
 import { Cart } from '@/types/cart';
+import { useAuth } from '@/hooks/useAuth';
 
 export const cartKeys = {
   all: ['cart'] as const
@@ -14,10 +15,12 @@ export const cartKeys = {
 export function useCart() {
   const queryClient = useQueryClient();
   const dispatch = useAppDispatch();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const cartQuery = useQuery({
     queryKey: cartKeys.all,
     queryFn: getCart,
-    retry: false
+    retry: false,
+    enabled: Boolean(user)
   });
 
   function syncCart(cart: Cart) {
@@ -31,7 +34,7 @@ export function useCart() {
 
   return {
     cart: cartQuery.data?.cart,
-    isLoading: cartQuery.isLoading,
+    isLoading: isAuthLoading || cartQuery.isLoading,
     isError: cartQuery.isError,
     error: cartQuery.error,
     addItem: useMutation({

@@ -1,26 +1,10 @@
 import type { Request, Response } from 'express';
 import prisma from '../../lib/prisma';
+import { ok } from '../../utils/http';
+import { readPositiveInt } from '../../utils/ids';
+import { serializeProduct } from './product.serializer';
 
 const AppError = require('../../utils/AppError');
-
-function serializeProduct(product: any) {
-  const { publicId, ...rest } = product;
-
-  return {
-    ...rest,
-    id: publicId,
-    price: Number(product.price),
-    rating: Number(product.rating)
-  };
-}
-
-function readProductPublicId(value: unknown) {
-  const id = Number(value);
-  if (!Number.isInteger(id) || id < 1) {
-    throw new AppError('Product id must be a positive integer', 400, 'INVALID_PRODUCT_ID');
-  }
-  return id;
-}
 
 export async function listProducts(req: Request, res: Response) {
   const { search, category, minPrice, maxPrice, rating } = req.query;
@@ -49,7 +33,7 @@ export async function listProducts(req: Request, res: Response) {
     take: 60
   });
 
-  res.json({
+  return ok(res, {
     products: products.map(serializeProduct),
     filters: {
       categories: await prisma.product.findMany({
@@ -62,9 +46,11 @@ export async function listProducts(req: Request, res: Response) {
 }
 
 export async function getProduct(req: Request, res: Response) {
-  const product = await prisma.product.findUnique({ where: { publicId: readProductPublicId(req.params.id) } });
+  const product = await prisma.product.findUnique({
+    where: { publicId: readPositiveInt(req.params.id, 'Product', 'INVALID_PRODUCT_ID') }
+  });
   if (!product) {
     throw new AppError('Product not found', 404, 'PRODUCT_NOT_FOUND');
   }
-  res.json({ product: serializeProduct(product) });
+  return ok(res, { product: serializeProduct(product) });
 }

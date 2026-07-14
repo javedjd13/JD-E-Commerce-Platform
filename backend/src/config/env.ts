@@ -1,8 +1,8 @@
-const dotenv = require('dotenv');
+const dotenv = require("dotenv");
 
 dotenv.config();
 
-const required = ['DATABASE_URL'];
+const required = ["DATABASE_URL"];
 
 for (const key of required) {
   if (!process.env[key]) {
@@ -10,24 +10,34 @@ for (const key of required) {
   }
 }
 
+const nodeEnv = process.env.NODE_ENV || "development";
+const isProduction = nodeEnv === "production";
+const jwtAccessSecret =
+  process.env.JWT_ACCESS_SECRET || "change-this-secret-in-production";
+
+if (isProduction && jwtAccessSecret === "change-this-secret-in-production") {
+  throw new Error("JWT_ACCESS_SECRET must be configured in production");
+}
+
 module.exports = {
-  nodeEnv: process.env.NODE_ENV || 'development',
+  nodeEnv,
+  isProduction,
   port: Number(process.env.PORT || 4000),
   databaseUrl: process.env.DATABASE_URL,
-  logLevel: process.env.LOG_LEVEL || 'info',
-  corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  logLevel: process.env.LOG_LEVEL || "info",
+  corsOrigin: process.env.CORS_ORIGIN || "http://localhost:3000",
   jwt: {
-    accessSecret: process.env.JWT_ACCESS_SECRET || 'change-this-secret-in-production',
-    accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '7d'
+    accessSecret: jwtAccessSecret,
+    accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || "7d",
   },
   razorpay: {
-    keyId: process.env.RAZORPAY_KEY_ID || '',
-    keySecret: process.env.RAZORPAY_KEY_SECRET || ''
+    keyId: process.env.RAZORPAY_KEY_ID || "",
+    keySecret: process.env.RAZORPAY_KEY_SECRET || "",
   },
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
-  }
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+  },
 };
 
 export {};
